@@ -36,6 +36,7 @@ currentDay = f"{day}_{month}_{year}"
 
 
 
+
 class DataSim:
     @staticmethod
     def generate_weather_data():
@@ -46,6 +47,7 @@ class DataSim:
     @staticmethod
     def generate_fuel_loading():
         return np.random.uniform(0, 1, (grid_size, grid_size))
+
 
 
 
@@ -352,6 +354,8 @@ class DataVisualization():
         plt.show()
 
 
+
+
 class Functionality:
     @staticmethod
     def overlay_fire_predictions_on_tiff(
@@ -511,6 +515,12 @@ class Functionality:
         return bounds
 
 
+
+def write_to_log(logging_this_data):
+    log_location = f"{cwd}/GIS_Data/Change_Logs"
+    with open(f"{log_location}/{day}_{hour}.txt", "a" ) as log:
+        log.write(f"\n{logging_this_data}\n|\n---> at {day}{hour}{minute} to {log_location}/{day}_{hour}.txt\n")
+
 #----------------------------------- CURRENT TEST -----------------------------------
 def test_all_tiffs_in_folder(folder_path, grid_size=10):
     """
@@ -534,6 +544,8 @@ def test_all_tiffs_in_folder(folder_path, grid_size=10):
         print(f"\n===============================\n"
               f"  Testing file {idx}/{len(tiff_files)}:\n  {tiff_file}\n"
               f"===============================")
+        write_to_log(f"\n\n------------------------------------------------------------- \nTesting file {idx}/{len(tiff_files)}:\n  {tiff_file}")
+              
 
         try:
             test_functionality_overlay(tiff_file, grid_size)
@@ -542,6 +554,7 @@ def test_all_tiffs_in_folder(folder_path, grid_size=10):
             print(f"ERROR while testing {tiff_file}: {e}")
 
     print("\n=== Completed testing all TIFFs ===")
+    write_to_log(f"\n|\n--->Completed testing all TIFFs")
 
 
 
@@ -574,8 +587,10 @@ def test_functionality_overlay(tiff_file, grid_size=10):
         title="Test Point on Raster"
     )
     print("Point plot complete!\n")
+    write_to_log(f"\n|\n--->Point plot complete!\n")
 
     print("===== Testing overlay_fire_predictions_on_tiff =====")
+    write_to_log("\n|\n--->Testing overlay_fire_predictions_on_tiff")
     # Generate dummy fire risk and spread maps
     fire_risk_map = np.random.rand(grid_size, grid_size)
     fire_spread_map = np.random.rand(grid_size, grid_size)
