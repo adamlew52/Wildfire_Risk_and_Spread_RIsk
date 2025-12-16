@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    ECR_REPO_URI: "<ACCOUNT_ID>.dkr.ecr.us-west-1.amazonaws.com/fire-pred-lambda"
+    ECR_REPO_URI: "615897049437.dkr.ecr.us-west-1.amazonaws.com/fire-pred-lambda"
 
 phases:
   pre_build:
