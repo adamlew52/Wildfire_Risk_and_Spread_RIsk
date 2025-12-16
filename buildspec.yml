@@ -2,6 +2,7 @@ version: 0.2
 
 env:
   variables:
+    AWS_DEFAULT_REGION: "us-west-1"
     ECR_REPO_URI: "615897049437.dkr.ecr.us-west-1.amazonaws.com/fire-pred-lambda"
 
 phases:
@@ -19,4 +20,3 @@ phases:
     commands:
       - echo Pushing the Docker image to ECR...
       - docker push $ECR_REPO_URI:latest
-
