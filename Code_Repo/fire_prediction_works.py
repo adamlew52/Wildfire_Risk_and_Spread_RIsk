@@ -12,8 +12,6 @@ from datetime import datetime
 import re
 from pyproj import Transformer
 import glob
-import random
-import tkinter
 
 now = datetime.now()
 year = now.year
@@ -38,6 +36,7 @@ currentDay = f"{day}_{month}_{year}"
 
 
 
+
 class DataSim:
     @staticmethod
     def generate_weather_data():
@@ -48,6 +47,8 @@ class DataSim:
     @staticmethod
     def generate_fuel_loading():
         return np.random.uniform(0, 1, (grid_size, grid_size))
+
+
 
 
 class ObtainActualData:
@@ -358,14 +359,6 @@ class DataVisualization():
 class Functionality:
     @staticmethod
     def overlay_fire_predictions_on_tiff(
-        ignition_lat,
-        ignition_lon,
-        minLat,
-        maxLat,
-        minLong,
-        maxLong,
-        ignition_row,
-        ignition_col,
         tiff_path, 
         fire_risk_map, 
         fire_spread_map, 
@@ -410,13 +403,13 @@ class Functionality:
         spread_im = ax.imshow(spread_upsampled, cmap=cmap_spread, alpha=alpha, origin='upper')
 
         # Colorbars
-        cbar_risk = fig.colorbar(risk_im, ax=ax, fraction=0.046, pad=0.05)
+        cbar_risk = fig.colorbar(risk_im, ax=ax, fraction=0.046, pad=0.04)
         cbar_risk.set_label('Fire Risk')
 
-        cbar_spread = fig.colorbar(spread_im, ax=ax, fraction=0.046, pad=0.1)
+        cbar_spread = fig.colorbar(spread_im, ax=ax, fraction=0.046, pad=0.08)
         cbar_spread.set_label('Fire Spread')
 
-        ax.set_title(f"Overlay of Fire Risk & Spread\n{os.path.basename(tiff_path)}\nBounds Lat:({minLat}, {maxLat}) | Bounds Long: ({minLong}, {maxLong}),\nIgnition at:({ignition_lat}, {ignition_lon})\nIgnition Pixels (Row: {ignition_row}, Col: {ignition_col})")
+        ax.set_title(f"Overlay of Fire Risk & Spread on {os.path.basename(tiff_path)}")
         ax.set_xlabel("X (pixels)")
         ax.set_ylabel("Y (pixels)")
 
@@ -424,30 +417,11 @@ class Functionality:
         if output_folder:
             os.makedirs(output_folder, exist_ok=True)
             base_name = os.path.splitext(os.path.basename(tiff_path))[0]
-            basename_no_spaces = re.sub(r'[<>"/\\|?* ]', '_', base_name)
-            output_file = os.path.join(output_folder, f"{hour}-{minute}_{basename_no_spaces}_Overlay.pdf")
+            output_file = os.path.join(output_folder, f"{base_name}_Overlay.pdf")
             fig.savefig(output_file, format='pdf')
             print(f"Overlay saved to {output_file}")
 
         return fig
-
-    @staticmethod
-    def latlon_to_rowcol(tiff_path, lat, lon):
-        with rasterio.open(tiff_path) as src:
-            transform = src.transform
-            crs = src.crs
-
-            # Convert geographic → raster CRS if needed
-            if crs.is_geographic:
-                x, y = lon, lat
-            else:
-                transformer = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
-                x, y = transformer.transform(lon, lat)
-
-            # Map coordinates → pixel indices
-            col, row = ~transform * (x, y)
-
-        return int(round(row)), int(round(col))
 
     @staticmethod
     def plot_latlon_on_tiff(tiff_path, lat, lon, marker_color='red', marker_size=50, title=None):
@@ -486,8 +460,8 @@ class Functionality:
         show(raster_data, ax=ax, cmap='terrain', origin='upper')
 
         # Save figure for debugging/testing
-        os.makedirs(f"{cwd_safe}/maps_split_idk_BUG/", exist_ok=True)
-        fig.savefig(f"{cwd_safe}/maps_split_idk_BUG/conifer_{lat}_{lon}.pdf", format="pdf")
+        os.makedirs(f"{cwd_safe}/1testingmyshit/", exist_ok=True)
+        fig.savefig(f"{cwd_safe}/1testingmyshit/conifer_{lat}_{lon}.pdf", format="pdf")
 
         # Plot the marker
         ax.scatter(col, row, c=marker_color, s=marker_size, edgecolor='black', label=f"Lat: {lat}, Lon: {lon}")
@@ -540,29 +514,6 @@ class Functionality:
 
         return bounds
 
-    @staticmethod
-    def latlon_to_rowcol(tiff_path, lat, lon):
-        """
-        Convert lat/lon to raster row/column indices.
-
-        Returns:
-            (row, col)
-        """
-        with rasterio.open(tiff_path) as src:
-            transform = src.transform
-            crs = src.crs
-
-            # Convert lat/lon → CRS of raster
-            if crs.is_geographic:
-                x, y = lon, lat
-            else:
-                transformer = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
-                x, y = transformer.transform(lon, lat)
-
-            col, row = ~transform * (x, y)
-
-        return int(round(row)), int(round(col))
-
 
 
 def write_to_log(logging_this_data):
@@ -606,152 +557,57 @@ def test_all_tiffs_in_folder(folder_path, grid_size=10):
     write_to_log(f"\n|\n--->Completed testing all TIFFs")
 
 
-def test_single_tiff(tiff_path, grid_size=10, ignition_lat=None, ignition_long=None):
+
+
+def test_functionality_overlay(tiff_file, grid_size=10):
     """
-    Runs test_functionality_overlay() on ONE specific .tiff file.
-
-    Parameters
-    ----------
-    tiff_path : str
-        Full path to the TIFF file to test.
-    grid_size : int
-        Grid size for simulated fire risk/spread maps.
-    ignition_lat : float
-        Latitude for ignition test point.
-    ignition_long : float
-        Longitude for ignition test point.
+    Test all main Functionality class methods:
+    1. get_latlon_bounds
+    2. plot_latlon_on_tiff
+    3. overlay_fire_predictions_on_tiff
     """
-    print(f"\n=== Testing single TIFF: {tiff_path} ===")
-
-    # Validate file
-    if not os.path.isfile(tiff_path):
-        print(f"ERROR: TIFF file does not exist: {tiff_path}")
-        return
-
-    try:
-        write_to_log(f"\n\n-------------------------------------------------------------\nTesting file:\n  {tiff_path}")
-
-        # Call your existing full test function
-        test_functionality_overlay(
-            tiff_file=tiff_path,
-            grid_size=grid_size,
-            ignition_lat=ignition_lat,
-            ignition_long=ignition_long
-        )
-
-        print(f"SUCCESS → {os.path.basename(tiff_path)}")
-
-    except Exception as e:
-        print(f"ERROR while testing {tiff_path}: {e}")
-
-    print("\n=== Completed single TIFF test ===")
-    write_to_log(f"\n|\n--->Completed single TIFF test")
-
-
-def rand_ignite_lat_long(min_lat, max_lat, min_lon, max_lon):
-    rand_ignition_lat = (((max_lat - min_lat) / random.randint(2, 5)) + min_lat)
-    rand_ignition_lon = (((max_lon - min_lon) / random.randint(2, 10)) + min_long)
-    return rand_ignition_lat, rand_ignition_lon
-    
-    
-
-
-def test_functionality_overlay(tiff_file, grid_size=10, ignition_lat=None, ignition_lon=None):
-    """
-    Test all main Functionality methods with optional ignition point.
-    Includes:
-        1. get_latlon_bounds
-        2. plot_latlon_on_tiff
-        3. overlay_fire_predictions_on_tiff
-        4. ignition point conversion + injection into spread map
-    """
-
     print("===== Testing get_latlon_bounds =====")
     bounds = Functionality.get_latlon_bounds(tiff_file)
     print("Raster Lat/Lon Bounds:")
-    print(f"Latitude:  {bounds['min_lat']} → {bounds['max_lat']}")
+    print(f"Latitude: {bounds['min_lat']} → {bounds['max_lat']}")
     print(f"Longitude: {bounds['min_lon']} → {bounds['max_lon']}\n")
 
-    # --------------------------------------------------------
-    # 1. Choose ignition point: user-provided or center of map
-    # --------------------------------------------------------
-    if ignition_lat is None or ignition_lon is None:
-        ignition_lat = (bounds['min_lat'] + bounds['max_lat']) / 2
-        ignition_lon = (bounds['min_lon'] + bounds['max_lon']) / 2
-        print(f"No ignition provided — using raster center.")
-        #ignition_lat = rand_ignite_lat_long(bounds['min_lat'], bounds['max_lat'], bounds['min_lon'], bounds['max_lon'])[0]
-        #ingition_lon = rand_ignite_lat_long(bounds['min_lat'], bounds['max_lat'], bounds['min_lon'], bounds['max_lon'])[1]
-    
-    print(f"Ignition start at Lat: {ignition_lat}, Lon: {ignition_lon}")
+    # Pick a test point in the center of the raster bounds
+    test_lat = (bounds['min_lat'] + bounds['max_lat']) / 2
+    test_lon = (bounds['min_lon'] + bounds['max_lon']) / 2
 
-    # Convert ignition lat/lon → pixel (row, col)
-    ignition_row, ignition_col = Functionality.latlon_to_rowcol(
-        tiff_file, ignition_lat, ignition_lon
-    )
-    print(f"Ignition pixel coords: row={ignition_row}, col={ignition_col}")
-
-    # Open raster dims to scale ignition into prediction map
-    with rasterio.open(tiff_file) as src:
-        raster_height = src.height
-        raster_width = src.width
-
-    # Map pixel → downsampled prediction grid
-    row_scaled = int(ignition_row / (raster_height / grid_size))
-    col_scaled = int(ignition_col / (raster_width / grid_size))
-
-    # Clamp to grid bounds
-    row_scaled = max(0, min(grid_size - 1, row_scaled))
-    col_scaled = max(0, min(grid_size - 1, col_scaled))
-
-    print(f"Scaled ignition grid coords: row={row_scaled}, col={col_scaled}\n")
-
-    # --------------------------------------------------------
-    # 2. Test point plotting
-    # --------------------------------------------------------
     print("===== Testing plot_latlon_on_tiff =====")
+    print(f"Plotting test point at Lat: {test_lat}, Lon: {test_lon}")
     fig_point = Functionality.plot_latlon_on_tiff(
         tiff_path=tiff_file,
-        lat=ignition_lat,
-        lon=ignition_lon,
+        lat=test_lat,
+        lon=test_lon,
         marker_color='blue',
-        marker_size=150,
-        title="Ignition Point on Raster"
+        marker_size=100,
+        title="Test Point on Raster"
     )
     print("Point plot complete!\n")
-    write_to_log("\n|\n--->Point plot complete!")
+    write_to_log(f"\n|\n--->Point plot complete!\n")
 
-    # --------------------------------------------------------
-    # 3. Generate dummy maps BUT inject ignition in spread map
-    # --------------------------------------------------------
     print("===== Testing overlay_fire_predictions_on_tiff =====")
     write_to_log("\n|\n--->Testing overlay_fire_predictions_on_tiff")
-
-    # Random risk map
+    # Generate dummy fire risk and spread maps
     fire_risk_map = np.random.rand(grid_size, grid_size)
+    fire_spread_map = np.random.rand(grid_size, grid_size)
 
-    # Spread map starts empty
-    fire_spread_map = np.zeros((grid_size, grid_size))
-    fire_spread_map[row_scaled, col_scaled] = 1.0  # <--- IGNITION LOCATION
-
-    overlay_folder = f"{cwd_safe}/GIS_Data/Opaque_Overlays/mon-{month}_day-{day}"
+    overlay_folder = f"{cwd_safe}\GIS_Data\Opaque_Overlays"
     fig_overlay = Functionality.overlay_fire_predictions_on_tiff(
-        ignition_lat,
-        ignition_lon,
-        bounds['min_lat'],
-        bounds['max_lat'],
-        bounds['min_lon'],
-        bounds['max_lon'],
-        ignition_row, 
-        ignition_col,
         tiff_path=tiff_file,
         fire_risk_map=fire_risk_map,
         fire_spread_map=fire_spread_map,
         alpha=0.5,
-        output_folder=overlay_folder,
+        output_folder=overlay_folder
     )
-
     print("Overlay plot complete!")
 
+    # Optionally show figures
+    # fig_point.show()
+    # fig_overlay.show()
 
 def test_functionality(tiff_file):
     """
@@ -815,8 +671,6 @@ def Test_Gen_Usage():
     #pwd_file_storage = os.
     raw_tiff_files = [f for f in os.listdir(raw_file_storage) if f.endswith('.tiff')]
     print(f"raw_tiff_files: {raw_tiff_files}\n")
-
-
 
 
 def run_fire_spread_test():
@@ -946,23 +800,13 @@ raw_dir = f"{cwd_safe}/GIS_Data/raw_tiff"
 norm_dir = f"{cwd_safe}/GIS_Data/normalized_tiff"
 
 # Example usage:
-raw_tiff_test_file = f"{cwd_safe}/GIS_Data/raw_tiff/Conifer.tiff"
-norm_tiff_test_file = f"{cwd_safe}/GIS_Data/normalized_tiff/normalized_Conifer.tiff"
-#test_functionality_overlay(tiff_test_file)`
+tiff_test_file = f"{cwd_safe}/GIS_Data/raw_tiff/Conifer.tiff"
+#test_functionality_overlay(tiff_test_file)
 
 
-
-
-#test_all_tiffs_in_folder(norm_dir)
+test_all_tiffs_in_folder(norm_dir)
 test_all_tiffs_in_folder(raw_dir)
 
-
-#test_single_tiff(
-#    tiff_path=norm_tiff_test_file,
-#    grid_size=20,
-#    ignition_lat=39.605,
-#    ignition_long=-105.935
-#)
 
 
 # Run everything in one call
@@ -972,6 +816,7 @@ test_all_tiffs_in_folder(raw_dir)
 #    norm_folder=norm_dir,
 #    grid_size=10
 #)
+
 
 
 

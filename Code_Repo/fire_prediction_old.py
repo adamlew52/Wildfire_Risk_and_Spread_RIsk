@@ -12,8 +12,6 @@ from datetime import datetime
 import re
 from pyproj import Transformer
 import glob
-import random
-import tkinter
 
 now = datetime.now()
 year = now.year
@@ -48,6 +46,8 @@ class DataSim:
     @staticmethod
     def generate_fuel_loading():
         return np.random.uniform(0, 1, (grid_size, grid_size))
+
+
 
 
 class ObtainActualData:
@@ -358,14 +358,6 @@ class DataVisualization():
 class Functionality:
     @staticmethod
     def overlay_fire_predictions_on_tiff(
-        ignition_lat,
-        ignition_lon,
-        minLat,
-        maxLat,
-        minLong,
-        maxLong,
-        ignition_row,
-        ignition_col,
         tiff_path, 
         fire_risk_map, 
         fire_spread_map, 
@@ -410,13 +402,13 @@ class Functionality:
         spread_im = ax.imshow(spread_upsampled, cmap=cmap_spread, alpha=alpha, origin='upper')
 
         # Colorbars
-        cbar_risk = fig.colorbar(risk_im, ax=ax, fraction=0.046, pad=0.05)
+        cbar_risk = fig.colorbar(risk_im, ax=ax, fraction=0.046, pad=0.04)
         cbar_risk.set_label('Fire Risk')
 
-        cbar_spread = fig.colorbar(spread_im, ax=ax, fraction=0.046, pad=0.1)
+        cbar_spread = fig.colorbar(spread_im, ax=ax, fraction=0.046, pad=0.08)
         cbar_spread.set_label('Fire Spread')
 
-        ax.set_title(f"Overlay of Fire Risk & Spread\n{os.path.basename(tiff_path)}\nBounds Lat:({minLat}, {maxLat}) | Bounds Long: ({minLong}, {maxLong}),\nIgnition at:({ignition_lat}, {ignition_lon})\nIgnition Pixels (Row: {ignition_row}, Col: {ignition_col})")
+        ax.set_title(f"Overlay of Fire Risk & Spread on {os.path.basename(tiff_path)}")
         ax.set_xlabel("X (pixels)")
         ax.set_ylabel("Y (pixels)")
 
@@ -424,8 +416,7 @@ class Functionality:
         if output_folder:
             os.makedirs(output_folder, exist_ok=True)
             base_name = os.path.splitext(os.path.basename(tiff_path))[0]
-            basename_no_spaces = re.sub(r'[<>"/\\|?* ]', '_', base_name)
-            output_file = os.path.join(output_folder, f"{hour}-{minute}_{basename_no_spaces}_Overlay.pdf")
+            output_file = os.path.join(output_folder, f"{base_name}_Overlay.pdf")
             fig.savefig(output_file, format='pdf')
             print(f"Overlay saved to {output_file}")
 
@@ -486,8 +477,8 @@ class Functionality:
         show(raster_data, ax=ax, cmap='terrain', origin='upper')
 
         # Save figure for debugging/testing
-        os.makedirs(f"{cwd_safe}/maps_split_idk_BUG/", exist_ok=True)
-        fig.savefig(f"{cwd_safe}/maps_split_idk_BUG/conifer_{lat}_{lon}.pdf", format="pdf")
+        os.makedirs(f"{cwd_safe}/1testingmyshit/", exist_ok=True)
+        fig.savefig(f"{cwd_safe}/1testingmyshit/conifer_{lat}_{lon}.pdf", format="pdf")
 
         # Plot the marker
         ax.scatter(col, row, c=marker_color, s=marker_size, edgecolor='black', label=f"Lat: {lat}, Lon: {lon}")
@@ -648,14 +639,6 @@ def test_single_tiff(tiff_path, grid_size=10, ignition_lat=None, ignition_long=N
     write_to_log(f"\n|\n--->Completed single TIFF test")
 
 
-def rand_ignite_lat_long(min_lat, max_lat, min_lon, max_lon):
-    rand_ignition_lat = (((max_lat - min_lat) / random.randint(2, 5)) + min_lat)
-    rand_ignition_lon = (((max_lon - min_lon) / random.randint(2, 10)) + min_long)
-    return rand_ignition_lat, rand_ignition_lon
-    
-    
-
-
 def test_functionality_overlay(tiff_file, grid_size=10, ignition_lat=None, ignition_lon=None):
     """
     Test all main Functionality methods with optional ignition point.
@@ -679,8 +662,6 @@ def test_functionality_overlay(tiff_file, grid_size=10, ignition_lat=None, ignit
         ignition_lat = (bounds['min_lat'] + bounds['max_lat']) / 2
         ignition_lon = (bounds['min_lon'] + bounds['max_lon']) / 2
         print(f"No ignition provided — using raster center.")
-        #ignition_lat = rand_ignite_lat_long(bounds['min_lat'], bounds['max_lat'], bounds['min_lon'], bounds['max_lon'])[0]
-        #ingition_lon = rand_ignite_lat_long(bounds['min_lat'], bounds['max_lat'], bounds['min_lon'], bounds['max_lon'])[1]
     
     print(f"Ignition start at Lat: {ignition_lat}, Lon: {ignition_lon}")
 
@@ -735,19 +716,11 @@ def test_functionality_overlay(tiff_file, grid_size=10, ignition_lat=None, ignit
 
     overlay_folder = f"{cwd_safe}/GIS_Data/Opaque_Overlays/mon-{month}_day-{day}"
     fig_overlay = Functionality.overlay_fire_predictions_on_tiff(
-        ignition_lat,
-        ignition_lon,
-        bounds['min_lat'],
-        bounds['max_lat'],
-        bounds['min_lon'],
-        bounds['max_lon'],
-        ignition_row, 
-        ignition_col,
         tiff_path=tiff_file,
         fire_risk_map=fire_risk_map,
         fire_spread_map=fire_spread_map,
         alpha=0.5,
-        output_folder=overlay_folder,
+        output_folder=overlay_folder
     )
 
     print("Overlay plot complete!")
@@ -953,16 +926,16 @@ norm_tiff_test_file = f"{cwd_safe}/GIS_Data/normalized_tiff/normalized_Conifer.t
 
 
 
-#test_all_tiffs_in_folder(norm_dir)
+test_all_tiffs_in_folder(norm_dir)
 test_all_tiffs_in_folder(raw_dir)
 
 
-#test_single_tiff(
-#    tiff_path=norm_tiff_test_file,
-#    grid_size=20,
-#    ignition_lat=39.605,
-#    ignition_long=-105.935
-#)
+test_single_tiff(
+    tiff_path=norm_tiff_test_file,
+    grid_size=20,
+    ignition_lat=39.605,
+    ignition_long=-105.935
+)
 
 
 # Run everything in one call
