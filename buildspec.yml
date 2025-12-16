@@ -2,12 +2,15 @@ version: 0.2
 
 env:
   variables:
+    AWS_DEFAULT_REGION: "us-west-1"
     ECR_REPO_URI: "615897049437.dkr.ecr.us-west-1.amazonaws.com/fire-pred-lambda"
 
 phases:
   pre_build:
     commands:
       - echo Logging in to Amazon ECR...
+      - echo "AWS region: $AWS_DEFAULT_REGION"
+      - echo "ECR URI: $ECR_REPO_URI"
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REPO_URI
   build:
     commands:
