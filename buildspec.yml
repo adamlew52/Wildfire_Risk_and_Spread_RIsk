@@ -1,0 +1,20 @@
+version: 0.2
+
+env:
+  variables:
+    ECR_REPO_URI: "<ACCOUNT_ID>.dkr.ecr.us-west-1.amazonaws.com/fire-pred-lambda"
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REPO_URI
+  build:
+    commands:
+      - echo Building the Docker image...
+      - docker build -t fire-pred-lambda .
+      - docker tag fire-pred-lambda:latest $ECR_REPO_URI:latest
+  post_build:
+    commands:
+      - echo Pushing the Docker image to ECR...
+      - docker push $ECR_REPO_URI:latest
